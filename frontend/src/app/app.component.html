@@ -1,0 +1,103 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" (click)="setPage('studio')" role="button"><span class="brand-mark">H</span><span>hue<span class="brand-light">room</span><small>WALL PAINT STUDIO</small></span></a>
+    <nav>
+      <button [class.active]="page==='studio'" (click)="setPage('studio')">Studio</button>
+      <button [class.active]="page==='saved'" (click)="setPage('saved')">Saved designs</button>
+      <button [class.active]="page==='admin'" (click)="setPage('admin')">Admin</button>
+    </nav>
+    <div class="account">
+      <span *ngIf="user" class="user-chip">{{user.name || user.email}}</span>
+      <button class="outline-btn" *ngIf="!user" (click)="setPage('auth')">Sign in</button>
+      <button class="outline-btn" *ngIf="user" (click)="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" *ngIf="page==='studio'">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-dot"></span> YOUR SPACE, REIMAGINED</p>
+        <h1>A little colour.<br><em>A whole new feeling.</em></h1>
+        <p class="hero-sub">Try paint shades on your own walls before you pick up a paintbrush. Your room, your light, your choice.</p>
+        <button class="primary-btn" (click)="startUpload()">Start with a room photo <span>↗</span></button>
+        <input #imageInput type="file" accept="image/jpeg,image/png" hidden (change)="chooseFile($event)">
+        <div class="hero-note"><span>✦</span> A more confident colour decision starts here.</div>
+      </div>
+      <div class="hero-art">
+        <div class="art-label label-top">THE COLOUR EDIT / 01</div>
+        <div class="room-illustration">
+          <div class="room-wall"></div><div class="room-window"><div></div><div></div><div></div><div></div></div>
+          <div class="room-frame"><div class="frame-art"></div></div>
+          <div class="room-sofa"><div class="sofa-back"></div><div class="sofa-seat"></div><div class="sofa-arm left"></div><div class="sofa-arm right"></div><div class="sofa-leg l1"></div><div class="sofa-leg l2"></div></div>
+          <div class="plant"><i></i><i></i><i></i><i></i><b></b></div>
+          <div class="room-floor"></div>
+        </div>
+        <div class="art-label label-bottom">SOFT SAGE · MATTE FINISH</div>
+      </div>
+    </section>
+
+    <div class="status" *ngIf="message"><span>✓</span> {{message}} <button (click)="message=''">×</button></div>
+    <div class="error" *ngIf="error"><span>!</span> {{error}} <button (click)="error=''">×</button></div>
+
+    <section class="studio-layout" *ngIf="page==='studio'">
+      <div class="section-heading"><div><p class="eyebrow">THE VIRTUAL STUDIO</p><h2>Make the walls yours.</h2></div><span class="step-count">01 — 03</span></div>
+      <div class="studio-grid">
+        <aside class="control-panel">
+          <div class="step-title"><span>01</span><div><b>Upload your room</b><small>Use a clear, well-lit JPG or PNG</small></div></div>
+          <button class="upload-box" (click)="startUpload()"><span class="upload-icon">↑</span><b>{{originalImage ? 'Choose another photo' : 'Upload room photo'}}</b><small>Click to browse · max 6 MB</small></button>
+          <div class="panel-divider"></div>
+          <div class="step-title"><span>02</span><div><b>Select a wall</b><small>Mark the wall boundary manually</small></div></div>
+          <div class="tool-buttons"><button class="secondary-btn" (click)="beginPolygon()">＋ Draw wall</button><button class="secondary-btn" [disabled]="polygon.length<3" (click)="finishPolygon()">Finish wall ✓</button></div>
+          <small class="helper">Click around the wall's edges on the image. Add at least 3 points.</small>
+          <div class="panel-divider"></div>
+          <div class="step-title"><span>03</span><div><b>Choose your colour</b><small>Find the feeling you're after</small></div></div>
+          <div class="selected-shade"><span [style.background]="selectedColor.hex"></span><div><b>{{selectedColor.name}}</b><small>{{selectedColor.hex}} · {{selectedColor.finish || 'Matte'}}</small></div></div>
+          <div class="swatches">
+            <button *ngFor="let color of colors" [title]="color.name + ' ' + color.hex" [style.background]="color.hex" [class.chosen]="selectedColor.hex===color.hex" (click)="selectedColor=color" [attr.aria-label]="color.name"></button>
+          </div>
+          <div class="opacity-row"><label for="opacity">Paint opacity</label><b>{{(opacity*100)|number:'1.0-0'}}%</b></div>
+          <input id="opacity" class="range" type="range" min="0.15" max="0.95" step="0.05" [(ngModel)]="opacity">
+          <button class="primary-btn full" (click)="applyPaint()">Preview this colour <span>↗</span></button>
+        </aside>
+        <div class="preview-panel">
+          <div class="preview-toolbar"><div><span class="live-dot"></span><b>ROOM PREVIEW</b><small>{{originalImage ? 'Your uploaded photo' : 'Your canvas is ready'}}</small></div><span class="preview-tag">LIVE STUDIO</span></div>
+          <div class="canvas-wrap" [class.empty]="!originalImage">
+            <canvas #paintCanvas (click)="canvasClick($event)" [style.cursor]="drawing ? 'crosshair' : 'default'"></canvas>
+            <div class="empty-state" *ngIf="!originalImage"><div class="empty-picture"><span>＋</span><div></div></div><b>Your room, but make it new.</b><p>Upload a photo to start exploring colour.</p><button class="secondary-btn" (click)="startUpload()">Choose a photo</button></div>
+          </div>
+          <div class="preview-footer"><div><b>{{drawing ? 'Wall selection in progress' : 'Your design, your decision'}}</b><small>{{drawing ? 'Click each corner, then finish the wall.' : 'Colours are an on-screen approximation.'}}</small></div><div class="preview-actions"><button class="secondary-btn" (click)="downloadImage()">↓ Download</button><button class="primary-btn" (click)="saveProject()">Save design ↗</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" *ngIf="page==='auth'">
+      <p class="eyebrow">YOUR PERSONAL COLOUR STUDIO</p><h2>{{authMode==='login' ? 'Welcome back.' : 'Create your space.'}}</h2>
+      <p class="muted">Sign in to keep your favourite room transformations together.</p>
+      <form class="auth-card" (ngSubmit)="submitAuth()">
+        <label *ngIf="authMode==='register'">Your name<input name="name" [(ngModel)]="authName" required placeholder="e.g. Ananya Rao"></label>
+        <label>Email address<input name="email" type="email" [(ngModel)]="authEmail" required placeholder="you@example.com"></label>
+        <label>Password<input name="password" type="password" [(ngModel)]="authPassword" required minlength="8" placeholder="At least 8 characters"></label>
+        <button class="primary-btn full" type="submit">{{authMode==='login' ? 'Sign in' : 'Create account'}} ↗</button>
+        <p class="switch-auth">{{authMode==='login' ? 'New to HueRoom?' : 'Already have an account?'}} <button type="button" (click)="authMode=authMode==='login'?'register':'login'">{{authMode==='login' ? 'Create an account' : 'Sign in'}}</button></p>
+      </form>
+    </section>
+
+    <section class="page-section" *ngIf="page==='saved'">
+      <p class="eyebrow">YOUR PERSONAL COLLECTION</p><h2>Saved designs.</h2><p class="muted">Room ideas worth coming back to.</p>
+      <div *ngIf="!user" class="empty-card"><b>Sign in to see your saved designs.</b><button class="primary-btn" (click)="setPage('auth')">Sign in ↗</button></div>
+      <div class="project-grid" *ngIf="user">
+        <article class="project-card" *ngFor="let project of projects"><img [src]="project.previewImage" [alt]="project.title"><div class="project-info"><b>{{project.title}}</b><small>{{project.color?.name || 'Custom colour'}} · {{project.createdAt | date:'mediumDate'}}</small><div><button class="secondary-btn" (click)="openProject(project)">Open design</button><button class="delete-btn" (click)="deleteProject(project)">Delete</button></div></div></article>
+        <div class="empty-card" *ngIf="projects.length===0"><b>No saved designs yet.</b><p>Your next favourite colour combination is waiting.</p><button class="primary-btn" (click)="setPage('studio')">Go to studio ↗</button></div>
+      </div>
+    </section>
+
+    <section class="page-section" *ngIf="page==='admin'">
+      <p class="eyebrow">CONTENT MANAGEMENT</p><h2>Palette manager.</h2><p class="muted">Manage the colour catalogue. Admin access is required by the API.</p>
+      <form class="admin-form" (ngSubmit)="addColor()"><label>Colour name<input name="colorName" [(ngModel)]="adminColorName" required placeholder="e.g. Morning Dew"></label><label>HEX value<input name="colorHex" [(ngModel)]="adminColorHex" required pattern="#[0-9a-fA-F]{6}"></label><label>Category<select name="category" [(ngModel)]="adminCategory"><option>Warm</option><option>Cool</option><option>Neutral</option><option>Earthy</option><option>Bold</option><option>Pastel</option><option>Luxury</option></select></label><button class="primary-btn" type="submit">Add colour +</button></form>
+      <div class="admin-colors"><div class="admin-color" *ngFor="let color of colors"><span [style.background]="color.hex"></span><div><b>{{color.name}}</b><small>{{color.hex}} · {{color.category}}</small></div><button *ngIf="color._id" class="delete-btn" (click)="removeColor(color)">Remove</button></div></div>
+    </section>
+
+    <section class="note-strip"><span class="note-star">✳</span><div><b>A note on real-life colour.</b><p>Your preview is a helpful guide, not an exact paint sample. Lighting, screen calibration, wall texture, and existing paint can change the final appearance. Always test a physical sample before painting.</p></div></section>
+  </main>
+  <footer><a class="brand footer-brand" (click)="setPage('studio')"><span class="brand-mark">H</span><span>hue<span class="brand-light">room</span></span></a><span>Make room for a new perspective.</span><span>DESIGNED FOR YOUR EVERYDAY</span></footer>
+</div>
